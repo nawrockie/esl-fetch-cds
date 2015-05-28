@@ -18,13 +18,16 @@ my $outfile_dir  = "";    # dir for output files, pwd unless -odir is used
 my $idfetch      = "/netopt/ncbi_tools64/bin/idfetch";
 my $fasta_linelen = 80; # TODO: make this settable at command line
 my $outdir       = undef;
+my $do_nocodon   = 0;     # set to 1 if -nocodon used
 
-&GetOptions( "odir=s" => \$outdir );
+&GetOptions( "odir=s"  => \$outdir, 
+             "nocodon" => \$do_nocodon);
 
 my $usage;
 $usage  = "esl-fetch-cds.pl [OPTIONS] <input coordinate file>\n";
 $usage .= "\tOPTIONS:\n";
 $usage .= "\t\t-odir <s>: write temporary files to directory <s>, instead of cwd\n";
+$usage .= "\t\t-nocodon : do not include codonstart in sequence name\n";
 
 if(scalar(@ARGV) != 1) { die $usage; }
 ($in_cfile) = @ARGV;
@@ -101,7 +104,10 @@ for(my $i = 0; $i < $ncds; $i++) {
   my @fetch_info_AA = (); # information for Bio::Easel::SqFile->fetch_subseqs()
                           # elements are arrays with 4 elements: 
                           # <new-name>, <start>, <stop>, <source-name>
-  my $cds_name = $orig_accn . ":codon_start" . $codon_start . ":";
+  my $cds_name = $orig_accn . ":";
+  if(! $do_nocodon) { 
+    $cds_name .= "codon_start" . $codon_start . ":";
+  }
   my $expected_strand = ""; # strand of first exon
   my $expected_seq    = ""; # sequence name of first exon
   my $have_multiple_seqs = 0; # set to '1' if we are fetching from more than one source sequence
