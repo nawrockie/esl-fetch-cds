@@ -239,6 +239,14 @@ sub parseCoordsFile {
     # BAJ21116.1	AB590961.1:10..>891
     # AAV98535.1	AY680453.1:<1..>489
     # NC_008210         join(NC_008210:161990..162784,complement(NC_008210:88222..88806),complement(NC_008210:86666..87448))
+    # remove and store original accession:
+    if($line =~ s/^(\S+)\s+//) { 
+      $orig_accn = $1;
+    }
+    else { 
+      die "ERROR couldn't find original accession in line $orig_line"; 
+    }
+
     if($line =~ s/^complement\(//) { # negative strand
       $strand = "-";
       if($line =~ s/\)$//) { ; } # remove final character, it should be a ')' matching the '(' in 'complement(' we just removed
@@ -247,15 +255,14 @@ sub parseCoordsFile {
     else { # positive strand
       $strand = "+";
     }
-    
+
     # Next deal with lines with 'join' indicating more than one subsequence (i.e. multiple exons)
     # example: 
-    # EEH43584.1	join(KN275973.1:226623..226774, KN275973.1:226854..229725)
-    # NC_008210         join(NC_008210:161990..162784,complement(NC_008210:88222..88806),complement(NC_008210:86666..87448))
+    # join(KN275973.1:226623..226774, KN275973.1:226854..229725)
+    # join(NC_008210:161990..162784,complement(NC_008210:88222..88806),complement(NC_008210:86666..87448))
     
     my ($accn, $start, $stop, $ic_start, $ic_stop);
-    if($line =~ s/^(\S+)\s+join\(//) { # get rid of everything up to 'join('
-      $orig_accn = $1;
+    if($line =~ s/^join\(//) { # remove 'join('
       # now: KN275973.1:226623..226774, KN275973.1:226854..229725)
       #  or: NC_008210:161990..162784,complement(NC_008210:88222..88806),complement(NC_008210:86666..87448))
       chomp $line;
@@ -287,8 +294,7 @@ sub parseCoordsFile {
         die "ERROR unable to parse (failure to find matching ) for 'join ('; line: $orig_line";
       }
     } # end of 'if($line =~ s/^\S+\s+\(join\(//) {'
-    elsif($line =~ /^(\S+)\s+.+\:\<?\d+\.\.\>?\d+$/) { # no 'join' just one subsequence, easy case
-      $orig_accn = $1;
+    elsif($line =~ /^.+\:\<?\d+\.\.\>?\d+$/) { # no 'join' just one subsequence, easy case
       #AIV71043.1	CP009235.1:2698208..2701135
       $line =~ s/^\S+\s+//; 
       #now: CP009235.1:2698208..2701135
