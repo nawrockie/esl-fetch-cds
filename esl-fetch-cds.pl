@@ -108,7 +108,8 @@ for(my $i = 0; $i < $ncds; $i++) {
   if(! $do_nocodon) { 
     $cds_name .= "codon_start" . $codon_start . ":";
   }
-  my $expected_strand = ""; # strand of first exon
+  my $at_least_one_pos_strand = 0; # set to 1 if any strands are positive
+  my $at_least_one_neg_strand = 0; # set to 1 if any strands are negative
   my $expected_seq    = ""; # sequence name of first exon
   my $have_multiple_seqs = 0; # set to '1' if we are fetching from more than one source sequence
   for(my $e = 0; $e < $nexon; $e++) { 
@@ -122,35 +123,57 @@ for(my $i = 0; $i < $ncds; $i++) {
     # make sure that we have the same strand for all exons, 
     # and keep track of whether we have multiple seqs
     if($e == 0) { 
-      $expected_strand = $strand; 
       $expected_seq    = $seq;
     }
-    else { 
-      if($strand ne $expected_strand) {
-        die "ERROR unexpectedly got different strands for different exons of same exon (line: $i+1)";
-      }
-      if($seq ne $expected_seq) { 
-        $have_multiple_seqs = 1;
-      }
+    elsif($seq ne $expected_seq) { 
+      $have_multiple_seqs = 1;
     }
-
     if($strand eq "+") { 
+      $at_least_one_pos_strand = 1; 
       push(@fetch_info_AA, [$newname, $start, $stop, $seq]);
     }
-    else { 
+    elsif($strand eq "-") { 
+      $at_least_one_neg_strand = 1; 
       push(@fetch_info_AA, [$newname, $stop, $start, $seq]);
+    }
+    else { 
+      die "ERROR found strand that is not + nor -: $strand\n"; 
     }
   }
 
-  if($expected_strand eq "-") { # reverse strand, reverse the exons
+  # Reverse order of exons if we've got multiple exons all of which
+  # are on the negative strand. For these first exon is the one
+  # containing the stop exon, and final is the one with the start
+  # example: complement(join(KN275973.1:226623..226774,
+  # KN275973.1:226854..229725))
+  # 
+  # However if we have a mix: at least one negative and at least one positive
+  # strand than (it seems) like we DO NOT need to reverse the order of the exons.
+  # The one example I've seen of this is:
+  # NC_008210:join(161990..162784,complement(88222..88806),complement(86666..87448))
+  # for which 86666 is the end of the stop codon, so it does not need to be reversed.
+  # 
+  if($at_least_one_neg_strand && $at_least_one_pos_strand) { 
+    # rare case of >= 1 exon on each strand
+    # check for case we thought was impossible
     if($have_multiple_seqs) { 
-      # ERROR, we want to fetch from multiple source sequences on the opposite strand,
-      # there's no way to know what the proper order of exons is, is it reversed
-      # like it would be with a single source sequence? Or not. If we ever encounter this 
-      # then we'll have to figure it out.
-      die "ERROR unexpectedly have multiple source sequences with exons on the negative strand. The code 'thought' this was impossible.";
+      die "ERROR unexpectedly have multiple source sequences with at least one exon on the negative strand and one on positive strand. The code 'thought' this was impossible.";
+    }
+  }
+  elsif($at_least_one_neg_strand) { 
+    # all exons are on negative strand
+    if($have_multiple_seqs) { 
+      die "ERROR unexpectedly have multiple source sequences with all exons on the negative strand. The code 'thought' this was impossible.";
     }
     @fetch_info_AA = reverse @fetch_info_AA;
+  }
+  elsif($at_least_one_pos_strand) { 
+    # all exons are on positive strand, do nothing
+    ;
+  }
+  else { 
+    # error, no exons
+    die "ERROR unexpectedly have no exons on either strand.";
   }
 
   my $cds_fa = $sqfile->fetch_subseqs(\@fetch_info_AA, -1, undef); # -1 makes it infinite length
@@ -187,7 +210,7 @@ exit 0;
 # Dies:       if unable to parse the file
 
 sub parseCoordsFile {
-  my $sub_name = "ParseCoordsFile()";
+  my $sub_name = "parseCoordsFile()";
   my $nargs_exp = 4;
   if(scalar(@_) != $nargs_exp) { die "ERROR $sub_name entered with wrong number of input args"; }
 
@@ -215,8 +238,8 @@ sub parseCoordsFile {
     # AFJ92633.1	JQ690867.1:<1..400	2
     # BAJ21116.1	AB590961.1:10..>891
     # AAV98535.1	AY680453.1:<1..>489
-    
-    if($line =~ s/complement\(//) { # negative strand
+    # NC_008210         join(NC_008210:161990..162784,complement(NC_008210:88222..88806),complement(NC_008210:86666..87448))
+    if($line =~ s/^complement\(//) { # negative strand
       $strand = "-";
       if($line =~ s/\)$//) { ; } # remove final character, it should be a ')' matching the '(' in 'complement(' we just removed
       else { die "ERROR unable to parse (failure to find matching ) for 'complement ('; line: $orig_line"; }
@@ -228,22 +251,36 @@ sub parseCoordsFile {
     # Next deal with lines with 'join' indicating more than one subsequence (i.e. multiple exons)
     # example: 
     # EEH43584.1	join(KN275973.1:226623..226774, KN275973.1:226854..229725)
+    # NC_008210         join(NC_008210:161990..162784,complement(NC_008210:88222..88806),complement(NC_008210:86666..87448))
     
     my ($accn, $start, $stop, $ic_start, $ic_stop);
     if($line =~ s/^(\S+)\s+join\(//) { # get rid of everything up to 'join('
       $orig_accn = $1;
-      # now: KN275973.1:226623..226774, KN275973.1:226854..229725))
+      # now: KN275973.1:226623..226774, KN275973.1:226854..229725)
+      #  or: NC_008210:161990..162784,complement(NC_008210:88222..88806),complement(NC_008210:86666..87448))
       chomp $line;
-      if($line =~ s/\)$//) { # remove trailing '))'
+      if($line =~ s/\)$//) { # remove trailing ')'
         # now: KN275973.1:226623..226774, KN275973.1:226854..229725
+        #  or: NC_008210:161990..162784,complement(NC_008210:88222..88806),complement(NC_008210:86666..87448)
         # process each /,\s*/ seperated element at a time
         my @elA = split(/\s*\,\s*/, $line);
         my $nel = scalar(@elA);
         my $start_stop = ""; # we'll append each exon to this 
         my $nexon = 0;
+        my $orig_strand = $strand; # for rare case of >= 1 internal 'complement's
         for(my $i = 0; $i < $nel; $i++) { 
+          if($elA[$i] =~ /^complement\(.+\)$/) { 
+            # complement(NC_008210:88222..88806)
+            if($orig_strand ne "+") { die "ERROR unable to parse $orig_line (internal complement but not originally positive strand...)" }
+            $strand = "-";
+            $elA[$i] =~ s/^complement\(//;
+            # now: NC_008210:88222..88806)
+            $elA[$i] =~ s/\)$//;
+            # now: NC_008210:88222..88806, which we can handle normally
+          }
           ($accn, $start, $stop, $ic_start, $ic_stop) = tokenBreakdown($elA[$i], $orig_line);
           push(@cur_cds_A, ("$accn:$start:$stop:$strand:$ic_start:$ic_stop"));
+          $strand = $orig_strand; # usually does nothing unless we found an internal complement
         }
       } # end of 'if($line =~ s/\)$//)' 
       else { 
