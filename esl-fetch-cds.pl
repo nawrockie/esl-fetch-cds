@@ -18,15 +18,18 @@ my $outfile_dir  = "";    # dir for output files, pwd unless -odir is used
 my $idfetch      = "/netopt/ncbi_tools64/bin/idfetch";
 my $fasta_linelen = 80; # TODO: make this settable at command line
 my $outdir       = undef;
+my $do_onlyaccn  = 0;     # set to 1 if -onlyaccn used
 my $do_nocodon   = 0;     # set to 1 if -nocodon used
 
-&GetOptions( "odir=s"  => \$outdir, 
-             "nocodon" => \$do_nocodon);
+&GetOptions( "odir=s"   => \$outdir, 
+             "onlyaccn" => \$do_onlyaccn,
+             "nocodon"  => \$do_nocodon);
 
 my $usage;
 $usage  = "esl-fetch-cds.pl [OPTIONS] <input coordinate file>\n";
 $usage .= "\tOPTIONS:\n";
 $usage .= "\t\t-odir <s>: write temporary files to directory <s>, instead of cwd\n";
+$usage .= "\t\t-onlyaccn: name sequences only as the accession (no coord info)\n";
 $usage .= "\t\t-nocodon : do not include codonstart in sequence name\n";
 
 if(scalar(@ARGV) != 1) { die $usage; }
@@ -104,9 +107,16 @@ for(my $i = 0; $i < $ncds; $i++) {
   my @fetch_info_AA = (); # information for Bio::Easel::SqFile->fetch_subseqs()
                           # elements are arrays with 4 elements: 
                           # <new-name>, <start>, <stop>, <source-name>
-  my $cds_name = $orig_accn . ":";
-  if(! $do_nocodon) { 
+  my $cds_name = $orig_accn;
+  my $desc     = "";
+  if(! $do_onlyaccn) { 
+    $cds_name .= ":";
+  }
+  if((! $do_onlyaccn) && (! $do_nocodon)) { 
     $cds_name .= "codon_start" . $codon_start . ":";
+  }
+  else { 
+    $desc .= " ";
   }
   my $at_least_one_pos_strand = 0; # set to 1 if any strands are positive
   my $at_least_one_neg_strand = 0; # set to 1 if any strands are negative
@@ -118,8 +128,12 @@ for(my $i = 0; $i < $ncds; $i++) {
     my $stop2print  = ($ic_stop)  ? ">" . $stop  : $stop;
     # populate @fetch_info_AA with necessary information
     my $newname = $orig_accn . ":" . $start2print . ":" . $stop2print . ":" . $strand;
-    $cds_name  .= $seq . ":" . $start2print . ":" . $stop2print . ":" . $strand . ":";
-
+    if(! $do_onlyaccn) { 
+      $cds_name .= $seq . ":" . $start2print . ":" . $stop2print . ":" . $strand . ":";
+    }
+    else { 
+      $desc .= $seq . ":" . $start2print . ":" . $stop2print . ":" . $strand . ":"; 
+    }
     # make sure that we have the same strand for all exons, 
     # and keep track of whether we have multiple seqs
     if($e == 0) { 
@@ -180,7 +194,7 @@ for(my $i = 0; $i < $ncds; $i++) {
   # we now have the CDS sequence in memory, remove all the header lines,
   $cds_fa =~ s/\n*\>.+\n//g;
   # now output it in chunks of $fasta_linelen
-  outputSequence(">" . $cds_name, $cds_fa, $fasta_linelen, undef);
+  outputSequence(">" . $cds_name . $desc, $cds_fa, $fasta_linelen, undef);
 
   foreach my $file (@unlink_A) { 
     if(-e $file) { 
