@@ -40,14 +40,11 @@ source /panfs/pan1/dnaorg/programs/setup-bio-easel.csh.sh
 #######################
 # Usage and options
 #######################
-# esl-fetch-cds.pl [OPTIONS] <input coordinate file>
-# 
-# Where <input coordinate file> is created by an early step of
-# dnaorg_fetch_cds_wrapper.pl. See 'Input files' section below
-# for format.
-# 
-# OPTIONS: 
-#     -odir <s>: write temporary files to directory <s>, instead of cwd
+#esl-fetch-cds.pl [OPTIONS] <input coordinate file>
+#	OPTIONS:
+#		-odir <s>: write temporary files to directory <s>, instead of cwd
+#		-onlyaccn: name sequences only as the accession (no coord info)
+#		-nocodon : do not include codonstart in sequence name
 #
 ############################
 # Example command and output

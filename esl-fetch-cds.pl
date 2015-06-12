@@ -239,6 +239,7 @@ sub parseCoordsFile {
     # BAJ21116.1	AB590961.1:10..>891
     # AAV98535.1	AY680453.1:<1..>489
     # NC_008210         join(NC_008210:161990..162784,complement(NC_008210:88222..88806),complement(NC_008210:86666..87448))
+    #NC_001346   	join(complement(KJ699341:1737..2378,KJ699341:1204..1644))
     # remove and store original accession:
     if($line =~ s/^(\S+)\s+//) { 
       $orig_accn = $1;
