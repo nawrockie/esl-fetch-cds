@@ -45,12 +45,13 @@ if(defined $outdir) {
 
 my @orig_accn_A   = (); # array of original (protein) accessions for each CDS, which we'll use to name output CDSs
 my @codon_start_A = (); # array of 'codon_start' for each CDS, if absent for a CDS, default value is '1'
+my @desc_A        = (); # array of descriptions for each CDS, if absent for a CDS, default value is ""
 my @cds_info_AA   = (); # 2D array: each element is an arrays that specifies the information for a CDS, 
                         # and is an array itself of elements of this format: <accession.version>:<start>:<stop>:<strand>
                         # each of which describes an exon.
 
 # parse the coordinate file
-parseCoordsFile($in_cfile, \@orig_accn_A, \@codon_start_A, \@cds_info_AA);
+parseCoordsFile($in_cfile, \@orig_accn_A, \@codon_start_A, \@desc_A, \@cds_info_AA);
 
 #debugPrintCdsInfo(\@orig_accn_A, \@cds_info_AA);
 
@@ -194,6 +195,7 @@ for(my $i = 0; $i < $ncds; $i++) {
   # we now have the CDS sequence in memory, remove all the header lines,
   $cds_fa =~ s/\n*\>.+\n//g;
   # now output it in chunks of $fasta_linelen
+  if($desc_A[$i] ne "") { $desc .= " " . $desc_A[$i]; }
   outputSequence(">" . $cds_name . $desc, $cds_fa, $fasta_linelen, undef);
 
   foreach my $file (@unlink_A) { 
@@ -214,6 +216,7 @@ exit 0;
 # Args:       $cfile:          path to coordinate file
 #             $orig_accn_AR:   filled here; ref to array of old accessions, one per CDS
 #             $codon_start_AR: filled here; ref to array of codon_start, one per CDS
+#             $desc_AR:        filled here; ref to array of descriptions, one per CDS, these can be ""
 #             $cds_info_AAR:   filled here; 2D array of information about each CDS to fetch
 #                              each element includes the information for one CDS and
 #                              is itself an array of strings in the following format:
@@ -225,10 +228,10 @@ exit 0;
 
 sub parseCoordsFile {
   my $sub_name = "parseCoordsFile()";
-  my $nargs_exp = 4;
+  my $nargs_exp = 5;
   if(scalar(@_) != $nargs_exp) { die "ERROR $sub_name entered with wrong number of input args"; }
 
-  my ($cfile, $orig_accn_AR, $codon_start_AR, $cds_info_AAR) = (@_);
+  my ($cfile, $orig_accn_AR, $codon_start_AR, $desc_AR, $cds_info_AAR) = (@_);
 
   my ($orig_line, $line, $strand, $orig_accn); 
 
@@ -240,8 +243,14 @@ sub parseCoordsFile {
 
     # Determine if we have 'codon_start' information, or not, and remove it if we do
     my $codon_start = 1; # default value
-    if($line =~ s/\t([123])$//) { 
+    if($line =~ s/\t([123])//) { 
       $codon_start = $1;
+    }
+
+    # Determine if we have a description appended to the end of th eline, and if so, remove it and store it
+    my $desc = ""; # default value
+    if($line =~ s/\tDESCRIPTION\:(.+)//) { 
+      $desc = $1;
     }
     
     # Determine if 'complement' exists (which gives us strand information) and get 
@@ -321,6 +330,7 @@ sub parseCoordsFile {
     # done parsing this line
     push(@{$orig_accn_AR}, $orig_accn); 
     push(@{$codon_start_AR}, $codon_start);
+    push(@{$desc_AR}, $desc); 
     push(@{$cds_info_AAR}, [@cur_cds_A]);
   } # end of 'while($line = <IN>)'
   return
