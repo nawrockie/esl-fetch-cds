@@ -180,6 +180,17 @@ for(my $i = 0; $i < $ncds; $i++) {
     if($have_multiple_seqs) { 
       die "ERROR unexpectedly have multiple source sequences with all exons on the negative strand. The code 'thought' this was impossible.";
     }
+    # make sure that our exons are indeed reversed as we expect them to be (as explained
+    # in the comment above, at the top of this code block)
+    # we expect increasing coordinates in the sequence: start1, stop1, start2, stop2, ... startN, stopN
+    my $cur_coord = 0;
+    for(my $tmp_i = 0; $tmp_i < scalar(@fetch_info_AA); $tmp_i++) { 
+      my ($tmp_newname, $tmp_start, $tmp_stop, $tmp_seq) = (@{$fetch_info_AA[$tmp_i]});
+      if($tmp_stop < $cur_coord) { die "ERROR unexpected order of reverse strand exons (start1..stop1..start2..stop2..startN..stopN should be ascending order) for $cds_name"; }
+      $cur_coord = $tmp_stop;
+      if($tmp_start < $cur_coord) { die "ERROR unexpected order of reverse strand exons (start1..stop1..start2..stop2..startN..stopN should be ascending order) for $cds_name"; }
+      $cur_coord = $tmp_start;
+    }
     @fetch_info_AA = reverse @fetch_info_AA;
   }
   elsif($at_least_one_pos_strand) { 
