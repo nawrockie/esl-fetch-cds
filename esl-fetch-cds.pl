@@ -63,11 +63,13 @@ my $ncds = scalar(@orig_accn_A);
 for(my $i = 0; $i < $ncds; $i++) { 
   my $orig_accn = $orig_accn_A[$i];
   my $codon_start  = $codon_start_A[$i];
-  my $tmp_seqfile  = "tmp.$orig_accn.fa";
-  my $tmp_accnfile = "tmp.$orig_accn.accn";
+  my $tmp_seqfile1  = "tmp.$orig_accn.fa1";
+  my $tmp_seqfile2  = "tmp.$orig_accn.fa";
+  my $tmp_accnfile  = "tmp.$orig_accn.accn";
   if(defined $outdir) { 
-    $tmp_accnfile = $outdir . $tmp_accnfile;
-    $tmp_seqfile  = $outdir . $tmp_seqfile;
+    $tmp_accnfile  = $outdir . $tmp_accnfile;
+    $tmp_seqfile1  = $outdir . $tmp_seqfile1;
+    $tmp_seqfile2  = $outdir . $tmp_seqfile2;
   }
   my @unlink_A = (); # files to unlink
   push(@unlink_A, ($tmp_seqfile, $tmp_accnfile));
@@ -95,8 +97,20 @@ for(my $i = 0; $i < $ncds; $i++) {
       my $output_char = (scalar(@seq_A) == 1) ? ">" : ">>";
       my $cmd = "echo $seq > $tmp_accnfile";
       runCommand($cmd);
-      # as we do the idfetch, rename the sequence to $seq
-      my $cmd = "$idfetch -t 5 -c 1 -G $tmp_accnfile | sed 's/^>\\S*/>$seq/' $output_char $tmp_seqfile";
+
+###########################################
+#      # we used to do this in 1 step, like this:
+#      # as we do the idfetch, rename the sequence to $seq
+#      my $cmd = "$idfetch -t 5 -c 1 -G $tmp_accnfile | sed 's/^>\\S*/>$seq/' $output_char $tmp_seqfile";
+#      # but that way, if $idfetch failed it would just hang, and the 'sed' command
+#      # would not fail, which meant that we would never exit and we would just hang
+############################################      
+
+      my $cmd = "$idfetch -t 5 -c 1 -G $tmp_accnfile > $tmp_seqfile1";
+      runCommand($cmd);
+      $cmd = "cat $tmp_seqfile1 | sed 's/^>\\S*/>$seq/' $output_char $tmp_seqfile2";
+      runCommand($cmd);
+      $cmd = "rm $tmp_seqfile1";
       runCommand($cmd);
       # TODO: have a command line option for appending commands to a log file, and update runCommand() to output to that file
     }
