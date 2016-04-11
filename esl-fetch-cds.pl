@@ -72,7 +72,8 @@ for(my $i = 0; $i < $ncds; $i++) {
     $tmp_seqfile2  = $outdir . $tmp_seqfile2;
   }
   my @unlink_A = (); # files to unlink
-  push(@unlink_A, ($tmp_seqfile, $tmp_accnfile));
+  push(@unlink_A, ($tmp_seqfile1, $tmp_accnfile));
+  push(@unlink_A, ($tmp_seqfile2, $tmp_accnfile));
   my $nexon = scalar(@{$cds_info_AA[$i]});
   my $nseq  = 0; 
   my @seq_A = ();
@@ -110,15 +111,13 @@ for(my $i = 0; $i < $ncds; $i++) {
       runCommand($cmd);
       $cmd = "cat $tmp_seqfile1 | sed 's/^>\\S*/>$seq/' $output_char $tmp_seqfile2";
       runCommand($cmd);
-      $cmd = "rm $tmp_seqfile1";
-      runCommand($cmd);
       # TODO: have a command line option for appending commands to a log file, and update runCommand() to output to that file
     }
   }
   # we have all source sequences for all of the exons in $tmp_seqfile, 
   # index it and fetch the subsequences we want
-  my $sqfile = Bio::Easel::SqFile->new({ fileLocation => $tmp_seqfile });
-  push(@unlink_A, $tmp_seqfile . ".ssi"); # it's very impt to remove this when we're done with it
+  my $sqfile = Bio::Easel::SqFile->new({ fileLocation => $tmp_seqfile2 });
+  push(@unlink_A, $tmp_seqfile2 . ".ssi"); # it's very impt to remove this when we're done with it
   my @fetch_info_AA = (); # information for Bio::Easel::SqFile->fetch_subseqs()
                           # elements are arrays with 4 elements: 
                           # <new-name>, <start>, <stop>, <source-name>
