@@ -63,9 +63,9 @@ my $ncds = scalar(@orig_accn_A);
 for(my $i = 0; $i < $ncds; $i++) { 
   my $orig_accn = $orig_accn_A[$i];
   my $codon_start  = $codon_start_A[$i];
-  my $tmp_seqfile1  = "tmp.$orig_accn.fa1";
-  my $tmp_seqfile2  = "tmp.$orig_accn.fa";
-  my $tmp_accnfile  = "tmp.$orig_accn.accn";
+  my $tmp_seqfile1  = "tmp.$$.$orig_accn.fa1";
+  my $tmp_seqfile2  = "tmp.$$.$orig_accn.fa";
+  my $tmp_accnfile  = "tmp.$$.$orig_accn.accn";
   if(defined $outdir) { 
     $tmp_accnfile  = $outdir . $tmp_accnfile;
     $tmp_seqfile1  = $outdir . $tmp_seqfile1;
