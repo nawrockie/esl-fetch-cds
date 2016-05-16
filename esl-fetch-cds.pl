@@ -108,6 +108,7 @@ for(my $i = 0; $i < $ncds; $i++) {
 ############################################      
 
       my $cmd = "$idfetch -t 5 -c 1 -G $tmp_accnfile > $tmp_seqfile1";
+      print("cmd: $cmd\n");
       runCommand($cmd);
       $cmd = "cat $tmp_seqfile1 | sed 's/^>\\S*/>$seq/' $output_char $tmp_seqfile2";
       runCommand($cmd);
@@ -267,7 +268,12 @@ sub parseCoordsFile {
 
     # Determine if we have 'codon_start' information, or not, and remove it if we do
     my $codon_start = 1; # default value
-    if($line =~ s/\t([123])//) { 
+    if($line =~ m/\t[123]\t/) { 
+      $line =~ s/\t([123])//;
+      $codon_start = $1;
+    }
+    elsif($line =~ m/\t[123]$/) { 
+      $line =~ s/\t([123])//;
       $codon_start = $1;
     }
 
