@@ -108,8 +108,13 @@ for(my $i = 0; $i < $ncds; $i++) {
 ############################################      
 
       my $cmd = "$idfetch -t 5 -c 1 -G $tmp_accnfile > $tmp_seqfile1";
-      print("cmd: $cmd\n");
       runCommand($cmd);
+      
+      # make sure tmp_seqfile1 is non-empty
+      if(! -s $tmp_seqfile1) { 
+        die "\nERROR, unable to fetch the sequence file $seq using the command $cmd\n"; 
+      }
+
       $cmd = "cat $tmp_seqfile1 | sed 's/^>\\S*/>$seq/' $output_char $tmp_seqfile2";
       runCommand($cmd);
       # TODO: have a command line option for appending commands to a log file, and update runCommand() to output to that file
