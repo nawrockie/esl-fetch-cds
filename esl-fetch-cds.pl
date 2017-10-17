@@ -26,7 +26,9 @@ my $do_nocodon   = 0;     # set to 1 if -nocodon used
              "nocodon"  => \$do_nocodon);
 
 my $usage;
-$usage  = "esl-fetch-cds.pl [OPTIONS] <input coordinate file>\n";
+$usage  = "esl-fetch-cds.pl v0.01\n\n";
+$usage .= "Usage:\n";
+$usage .= "esl-fetch-cds.pl [OPTIONS] <input coordinate file>\n";
 $usage .= "\tOPTIONS:\n";
 $usage .= "\t\t-odir <s>: write temporary files to directory <s>, instead of cwd\n";
 $usage .= "\t\t-onlyaccn: name sequences only as the accession (no coord info)\n";
