@@ -1,5 +1,5 @@
 # EPN, Thu Mar 26 15:50:58 2015
-# pwd: /panfs/pan1/dnaorg/programs/15_0324_esl_fetch_cds
+# version 0.01
 # 
 # Example of running esl-fetch-cds.pl to fetch
 # CDS sequences. 
